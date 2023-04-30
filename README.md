@@ -1,6 +1,8 @@
 
 # Provable Defense Against Geometric Transformations
-This codebase contains the implementation for the ICLR 2023 paper "Provable Defense Against Geometric Transformations" by Rem Yang, Jacob Laurel, Sasa Misailovic, and Gagandeep Singh. Our framework is the first for training neural networks to be deterministically certified robust to geometric transformations + speeds up deterministic geometric robustness certification by orders of magnitude compared to the state of the art on MNIST and CIFAR-10. Furthermore, we scale deterministic geometric verification to Tiny ImageNet and the Udacity self-driving dataset for the first time.
+<p align="center"><img src="thumbnail.png" alt="Thumbnail" align="middle" width=75% height=75%></p>
+
+This codebase contains the implementation for the ICLR 2023 paper "Provable Defense Against Geometric Transformations" by Rem Yang, Jacob Laurel, Sasa Misailovic, and Gagandeep Singh. Our framework is the first for training neural networks to be deterministically certified robust to geometric transformations + speeds up deterministic geometric robustness certification by orders of magnitude compared to the state of the art on MNIST and CIFAR-10. Furthermore, we scale deterministic geometric verification to Tiny ImageNet and the Udacity self-driving datasets for the first time.
 
 ## Codebase Overview
 1. `train.py`: Main script to train networks.
