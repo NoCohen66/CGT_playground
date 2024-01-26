@@ -82,14 +82,10 @@ with torch.no_grad():
         inputs, labels = inputs.to(device), labels.to(device)
         robust_bool = torch.full((len(inputs),), True, device=device)  # stores which images of current batch are robust
         interval_inputs = IntervalTensor(inputs, inputs)
-        interval_inputs = pixelwise(interval_inputs, pixelwise_transforms)
-        print("inputs", inputs.shape)
-        print("interval input", interval_inputs.shape) 
-        save_image(inputs, "NOEMIEtest_certify_brightness/input_im.png")
-        save_image(interval_inputs.lower, "NOEMIEtest_certify_brightness/lower.png")
-        save_image(interval_inputs.upper, "NOEMIEtest_certify_brightness/upper.png")
-        print("I have exit the code")
-        exit()
+        # REPLACE LINE WITH THE TWO FOLLOWINGS
+        # interval_inputs = pixelwise(interval_inputs, pixelwise_transforms) 
+        transform, theta_min, theta_max = pixelwise_transforms[0]
+        interval_inputs = IntervalTensor((interval_inputs.lower + theta_min).clamp(0, 1), (interval_inputs.upper + theta_max).clamp(0, 1))
         inputs_L = interval_inputs.lower
         inputs_U = interval_inputs.upper
         ptb = PerturbationLpNorm(norm=np.inf, x_L=inputs_L, x_U=inputs_U)
