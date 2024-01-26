@@ -1,3 +1,6 @@
+# python certify.py -d 'mnist' -c 1 -p 'networks/mnist/cgt_rotate-30^30^0.5.pt' -b 3
+
+
 import torch
 import torch.nn.functional as F
 
@@ -10,7 +13,7 @@ from timeit import default_timer as timer
 from tqdm import tqdm
 import sys
 sys.path.append('../')
-
+from torchvision.utils import save_image
 from geometric.intervals import *
 from geometric.interval_perturbations import *
 from geometric.scalar_perturbations import *
@@ -36,7 +39,6 @@ network_path = args.network_path
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print('Network:', network_path, file=sys.stderr)
 
-
 # LOAD DATASET AND TRANSFORMS
 if dataset_name == MNIST:
     from configs.mnist_config import *
@@ -53,10 +55,13 @@ if args.val:
 else:
     dataset = get_dataset(get_train=False)
 
+
 print('Number of images:', len(dataset), file=sys.stderr)
-dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+#dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=0)
 
 gts = gtss_certify[args.config_num]
+
 gts_split = {}
 for g, (theta_min, theta_max, interval_size) in gts.items():
     num_splits = round((theta_max - theta_min) / interval_size)
@@ -66,7 +71,7 @@ for g, (theta_min, theta_max, interval_size) in gts.items():
     gts_split[g] = intervals
     print(f'{g}: {num_splits} splits', file=sys.stderr)
 all_gts_splits = list(itertools.product(*gts_split.values()))  # stores all perturbation splits for whole specified range
-
+print("all_gts_splits", all_gts_splits)
 print('Transforms:', file=sys.stderr)
 has_geometric = False
 has_pixelwise = False
@@ -81,7 +86,7 @@ for tfm in gts:
 
 # LOAD NETWORK AND GET INDICES OF CORRECTLY CLASSIFIED IMAGES
 net = Network().to(device)
-net.load_state_dict(torch.load(network_path))
+net.load_state_dict(torch.load(network_path, map_location=torch.device('cpu')))
 net.eval()
 
 correct = torch.full((len(dataset),), False)
@@ -102,8 +107,8 @@ print('Correct:', num_correct, file=sys.stderr)
 
 correct_indices = correct.nonzero().flatten()
 correct_imgs = torch.utils.data.Subset(dataset, correct_indices)
-correct_dataloader = torch.utils.data.DataLoader(correct_imgs, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
-
+#correct_dataloader = torch.utils.data.DataLoader(correct_imgs, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
+correct_dataloader = torch.utils.data.DataLoader(correct_imgs, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True)
 
 # CERTIFY ROBUSTNESS VIA INTERVAL BOUNDS
 ibp_net = BoundedModule(net, torch.empty((batch_size, *img_shape)))
@@ -114,8 +119,14 @@ print('Certifying...', file=sys.stderr)
 
 s_time = timer()
 
+for split_i, tfms in enumerate(tqdm(all_gts_splits)):
+    print("spliiiit")
+    print(split_i, tfms)
+
+
 # precompute interpolation grids and pixelwise tfms
 if not args.np:
+    print("hereeeee nononononono !!!!!!")
     grids = [None for k in range(len(all_gts_splits))]
     pwises = [None for k in range(len(all_gts_splits))]
     for split_i, tfms in enumerate(tqdm(all_gts_splits)):
@@ -137,6 +148,8 @@ if not args.np:
         if has_pixelwise:
             pwises[split_i] = pixelwise_transforms
 
+print("pwises", pwises)
+print("pwises[0]", pwises[0])
 # start certification
 with torch.no_grad():
     for batch_i, (inputs, labels) in enumerate(correct_dataloader):
@@ -174,9 +187,17 @@ with torch.no_grad():
                         interp_grid = grids[split_i]
                     interval_inputs = spatial(interval_inputs, interp_grid)
                 if has_pixelwise:
+                    print("hereeeee baby")
                     pixelwise_transforms = pwises[split_i]
+                    print("Transformation asked:", pixelwise_transforms)
                     interval_inputs = pixelwise(interval_inputs, pixelwise_transforms)
-
+                    print("inputs", inputs.shape)
+                    print("interval input", interval_inputs.shape) 
+                    save_image(inputs, "experimentation_zone/input_im.png")
+                    save_image(interval_inputs.lower, "experimentation_zone/lower.png")
+                    save_image(interval_inputs.upper, "experimentation_zone/upper.png")
+                    print("I have exit the code")
+                    exit()
             inputs_L = interval_inputs.lower
             inputs_U = interval_inputs.upper
             ptb = PerturbationLpNorm(norm=np.inf, x_L=inputs_L, x_U=inputs_U)
@@ -204,4 +225,5 @@ print(f'{network_path},{num_correct},{num_robust},{certify_time}')
 
 if args.save:
     os.system(f'mkdir -p certified_indices/{dataset_name}')
-    torch.save(robust_indices, f'certified_indices/{dataset_name}/indices_{network_path.split("/")[-1]}')
+torch.save(robust_indices, f'certified_indices/{dataset_name}/indices_{network_path.split("/")[-1]}')
+

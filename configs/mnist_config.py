@@ -80,6 +80,9 @@ gtss_train = [
 
 gtss_certify = [
     {
+        BRIGHTNESS: (-0.01, 0.01, 0.02)
+    },
+    {
         ROTATE: (-30, 30, 0.25)
     },
     {
