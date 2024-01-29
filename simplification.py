@@ -70,11 +70,7 @@ correct_dataloader = torch.utils.data.DataLoader(correct_imgs, batch_size=batch_
 ibp_net = BoundedModule(net, torch.empty((batch_size, *img_shape)))
 robust_indices = []
 print('Certifying...', file=sys.stderr)
-
 s_time = timer()
-
-
-
 pixelwise_transforms = [('brightness', -0.01, 0.01)]
 # start certification
 with torch.no_grad():
